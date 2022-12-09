@@ -6,7 +6,10 @@ fn main() {
 
     // Parse lines into forrest
     for line in lines {
-        let numbers: Vec<i32> = line.chars().map(|c| c.to_digit(10).unwrap() as i32).collect();
+        let numbers: Vec<i32> = line
+            .chars()
+            .map(|c| c.to_digit(10).unwrap() as i32)
+            .collect();
         forrest.extend(numbers);
     }
 
@@ -21,26 +24,33 @@ fn main() {
         let col = position.rem_euclid(width);
 
         let tree = forrest[position];
-        let tree_row = &forrest[row*width..(row+1)*width];
+        let tree_row = &forrest[row * width..(row + 1) * width];
         let tree_col: Vec<&i32> = forrest[col..].iter().step_by(width).collect();
 
         let (left, right) = tree_row.split_at(col);
         let (top, bottom) = tree_col.split_at(row);
 
-        if left.iter().all(|&l| tree > l)
-            || right[1..].iter().all(|&r| tree > r)
-            || top.iter().all(|&&t| tree > t)
-            || bottom[1..].iter().all(|&&b| tree > b) {
-            // println!("{} Can be seen!", tree);
-            visible_trees += 1
+        let left_score = left.iter().rev().position(|l| l >= &tree);
+        let top_score = top.iter().rev().position(|&t| t >= &tree);
+        let right_score = right[1..].iter().position(|r| r >= &tree);
+        let bottom_score = bottom[1..].iter().position(|&b| b >= &tree);
+
+        // Score will be none if no taller tree is found
+
+        if left_score.is_none()
+            || right_score.is_none()
+            || top_score.is_none()
+            || bottom_score.is_none()
+        {
+            visible_trees += 1;
         }
 
-        let left_score   = left.iter().rev().position(|l| l >= &tree).map_or(left.len(), |p| p+1);
-        let top_score    = top.iter().rev().position(|&t| t >= &tree).map_or(top.len(), |p| p+1);
-        let right_score  = right[1..].iter().position(|r| r >= &tree).map_or(right.len()-1, |p| p+1);
-        let bottom_score = bottom[1..].iter().position(|&b| b >= &tree).map_or(bottom.len()-1, |p| p+1);
+        let incr = |value: usize| value + 1;
+        let score = left_score.map_or(left.len(), incr)
+            * right_score.map_or(right.len()-1, incr)
+            * top_score.map_or(top.len(), incr)
+            * bottom_score.map_or(bottom.len()-1, incr);
 
-        let score = left_score * right_score * top_score * bottom_score;
         if score > best_score {
             best_score = score;
         }
